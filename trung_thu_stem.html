@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xưởng STEM - Đêm Hội Trung Thu</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            /* Phông nền Đêm hội Trung thu */
+            background: linear-gradient(180deg, #0b132b 0%, #1c2541 50%, #3a506b 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Trang trí Mặt Trăng Đêm Trung thu */
+        .moon {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            width: 90px;
+            height: 90px;
+            background: #f1c40f;
+            border-radius: 50%;
+            box-shadow: 0 0 40px #f39c12;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            z-index: 2;
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+            color: #f1c40f; 
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+        }
+        .header p { margin: 5px 0 0; font-size: 16px; color: #ffeaa7; }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: 2px solid #f1c40f;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 15px;
+            z-index: 2;
+        }
+        input[type="text"] {
+            padding: 10px 15px;
+            font-size: 20px;
+            border: 2px solid #f1c40f;
+            border-radius: 10px;
+            width: 200px;
+            text-align: center;
+            outline: none;
+            font-weight: bold;
+            background: #fff;
+            color: #2c3e50;
+        }
+        button {
+            padding: 10px 22px;
+            font-size: 18px;
+            background: linear-gradient(45deg, #e67e22, #f1c40f);
+            color: #2c3e50;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        button:hover { transform: scale(1.05); background: linear-gradient(45deg, #d35400, #f39c12); color: #fff; }
+
+        .message {
+            height: 35px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            z-index: 2;
+        }
+        .msg-error { color: #ff7675; text-shadow: 1px 1px 4px #000; }
+        .msg-success { color: #55efc4; text-shadow: 1px 1px 4px #000; }
+
+        /* Khung chứa sơ đồ ghế phòng STEM Trung thu */
+        .stage-container {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(5px);
+            width: 100%;
+            max-width: 800px;
+            min-height: 400px;
+            border-radius: 20px;
+            border: 3px dashed #f1c40f;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+        
+        .grid-chairs {
+            display: grid;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chair {
+            width: 52px;
+            height: 52px;
+            background: #ffeaa7;
+            border: 3px solid #e67e22;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="moon"></div>
+
+    <div class="header">
+        <h1>🥮 CHẶNG 4: XẾP GHẾ ĐÊM HỘI TRUNG THU 🥮</h1>
+        <p>Hành khách nhí hãy gõ phép tính (ví dụ: 4x6) để Trưởng trạm tự động xếp ghế nhé!</p>
+    </div>
+
+    <div class="control-panel">
+        <input type="text" id="calcInput" placeholder="Nhập VD: 4x6" onkeypress="handleKeyPress(event)">
+        <button onclick="arrangeChairs()">XẾP GHẾ</button>
+    </div>
+
+    <div id="messageBox" class="message"></div>
+
+    <div class="stage-container">
+        <div id="chairGrid" class="grid-chairs"></div>
+    </div>
+
+    <script>
+        // Hệ thống phát âm thanh bằng Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 1. Âm thanh báo sai (Tiếng bíp trầm)
+        function playErrorSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        // 2. Âm thanh vỗ tay chúc mừng (Mô phỏng bằng tiếng ồn vỗ tay & tiếng chuông)
+        function playClapSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // Tiếng chuông mừng
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.08 + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + idx * 0.08);
+                osc.stop(audioCtx.currentTime + idx * 0.08 + 0.3);
+            });
+
+            // Tiếng vỗ tay rào rào (Noise buffer)
+            const bufferSize = audioCtx.sampleRate * 1.2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 1000;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+            
+            // Tạo các nhịp vỗ tay dồn dập
+            for (let t = 0; t < 1.2; t += 0.08) {
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + t);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + t + 0.05);
+            }
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+            noise.stop(audioCtx.currentTime + 1.2);
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') arrangeChairs();
+        }
+
+        function arrangeChairs() {
+            const input = document.getElementById('calcInput').value.trim().toLowerCase();
+            const messageBox = document.getElementById('messageBox');
+            const grid = document.getElementById('chairGrid');
+            
+            grid.innerHTML = '';
+            messageBox.className = 'message';
+            messageBox.innerText = '';
+
+            const parts = input.split(/[x*]/);
+            
+            if (parts.length !== 2) {
+                showError("Em hãy nhập đúng định dạng phép nhân nhé! (Ví dụ: 4x6 hoặc 3x8)");
+                return;
+            }
+
+            const rows = parseInt(parts[0]);
+            const cols = parseInt(parts[1]);
+
+            if (isNaN(rows) || isNaN(cols)) {
+                showError("Vui lòng chỉ nhập số!");
+                return;
+            }
+
+            if (rows * cols !== 24) {
+                showError(`Phép tính ${rows} x ${cols} = ${rows*cols}. Phòng STEM có đúng 24 chiếc ghế cơ mà!`);
+                return;
+            }
+
+            if (rows <= 1 || cols <= 1) {
+                showError("Trưởng trạm yêu cầu: Số hàng và số ghế mỗi hàng phải lớn hơn 1 nhé!");
+                return;
+            }
+
+            // ĐÚNG ĐÁP ÁN: Phát tiếng vỗ tay & Vẽ ghế
+            playClapSound();
+            showSuccess(`🎉 Tuyệt vời! Đã xếp xong ${rows} hàng, mỗi hàng ${cols} chiếc ghế!`);
+            
+            grid.style.gridTemplateColumns = `repeat(${cols}, 52px)`;
+
+            for (let i = 0; i < 24; i++) {
+                const chair = document.createElement('div');
+                chair.className = 'chair';
+                chair.innerHTML = '🪑';
+                chair.style.animationDelay = `${(i % cols) * 0.05 + Math.floor(i / cols) * 0.1}s`;
+                grid.appendChild(chair);
+            }
+        }
+
+        function showError(msg) {
+            playErrorSound(); // Phát tiếng báo sai
+            const messageBox = document.getElementById('messageBox');
+            messageBox.className = 'message msg-error';
+            messageBox.innerText = '❌ ' + msg;
+        }
+
+        function showSuccess(msg) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.className = 'message msg-success';
+            messageBox.innerText = msg;
+        }
+    </script>
+</body>
+</html>
